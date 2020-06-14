@@ -1,7 +1,5 @@
-cmake_minimum_required(VERSION 3.14)
-project(CHAP-5 C)
+add_executable(tcp_client tcp_client.c)
+add_executable(tcp_server tcp_server.c)
 
-set(CMAKE_C_STANDARD 99)
-
-add_executable(client client.c)
-add_executable(server server.c)
+target_link_libraries(tcp_client network)
+target_link_libraries(tcp_server network)

@@ -32,13 +32,13 @@ void send_data(int sockfd) {
     }
 }
 
-void main(int argc, char **argv) {
+int main(int argc, char **argv) {
     int sockfd;
     struct sockaddr_in servaddr;
 
     if (argc != 2) {
         perror("usage: client <IPaddress>");
-        return;
+        return EXIT_FAILURE;
     }
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
