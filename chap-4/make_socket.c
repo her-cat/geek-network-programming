@@ -30,7 +30,7 @@ int make_socket(uint16_t port)
     return sock;
 }
 
-void main()
+int main()
 {
     int sock = make_socket(8081);
 

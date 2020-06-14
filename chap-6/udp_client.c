@@ -10,7 +10,7 @@
 
 int main(int argc, char **argv) {
 	if (argc != 2) {
-		perror("useage: udp_client <IP address>");
+		perror("usage: udp_client <IP address>");
 		return EXIT_FAILURE;
 	}
 
