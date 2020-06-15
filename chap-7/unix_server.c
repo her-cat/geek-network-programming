@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/un.h>
-#include <zconf.h>
+#include <unistd.h>
 #include <string.h>
 #include <errno.h>
 
@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
 	socklen_t client_len;
 	struct sockaddr_un client_addr, server_addr;
 
-	listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+	listen_fd = socket(AF_LOCAL, SOCK_STREAM, 0);
 	if (listen_fd < 0) {
 		perror("socket create failed \n");
 		return EXIT_FAILURE;
@@ -36,21 +36,21 @@ int main(int argc, char **argv) {
 	strcpy(server_addr.sun_path, local_path);
 
 	if (bind(listen_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
-		perror("bind failed \n");
+		perror("bind failed");
 		return EXIT_FAILURE;
 	}
 
 	if (listen(listen_fd, BACKLOG) < 0) {
-		perror("listen failed \n");
+		perror("listen failed");
 		return EXIT_FAILURE;
 	}
 
 	client_len = sizeof(client_addr);
 	if ((conn_fd = accept(listen_fd, (struct sockaddr *) &client_addr, &client_len)) < 0) {
 		if (errno == EINTR) {
-			perror("accept failed \n"); // back to for()
+			perror("accept failed"); // back to for()
 		} else {
-			perror("accept failed \n");
+			perror("accept failed");
 		}
 
 		return EXIT_FAILURE;
@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
 			break;
 		}
 
-		printf("received: %s \n", buf);
+		printf("received: %s", buf);
 
 		char send_line[MAX_LINE];
 		sprintf(send_line, "Hi, %s", buf);
