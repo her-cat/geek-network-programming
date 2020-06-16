@@ -1,6 +1,13 @@
+#ifndef __COMMON_H__
+#define __COMMON_H__
+
 #include <stddef.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 size_t readn(int fd, void *buffer, size_t size) {
     char *buffer_pointer = (char *)buffer;
@@ -24,3 +31,17 @@ size_t readn(int fd, void *buffer, size_t size) {
 
     return size - length;
 }
+
+void error(int status, int err, char *fmt, ...) {
+	va_list ap;
+
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	if (err)
+		fprintf(stderr, ": %s (%d)\n", strerror(err), err);
+	if (status)
+		exit(status);
+}
+
+#endif
