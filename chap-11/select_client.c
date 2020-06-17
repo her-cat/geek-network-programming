@@ -6,7 +6,7 @@
 #include "../lib/common.h"
 
 #define MAX_LINE 4096
-#define SERVER_PORT 8091
+#define SERVER_PORT 8011
 
 int main(int argc, char **argv) {
 	if (argc != 2) {
@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
 			if (fgets(send_line, MAX_LINE, stdin) != NULL) {
 				if (strncmp(send_line, "shutdown", 8) == 0) {
 					FD_CLR(0, &all_reads);
-					if (shutdown(socket_fd, 1)) {
+					if (shutdown(socket_fd, SHUT_WR)) {
 						error(1, errno, "shutdown failed");
 					}
 				} else if (strncmp(send_line, "close", 5) == 0) {
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
 					if (rt < 0) {
 						error(1, errno, "write failed");
 					}
-					printf("send bytes: %zu", rt);
+					printf("send bytes: %zu \n", rt);
 				}
 			}
 		}
