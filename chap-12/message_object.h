@@ -1,7 +1,3 @@
-//
-// Created by hexianghui on 2020-06-19.
-//
-
 #ifndef __MESSAGE_OBJECT_H__
 #define __MESSAGE_OBJECT_H__
 
