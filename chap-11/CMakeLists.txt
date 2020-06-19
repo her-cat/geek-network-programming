@@ -1,5 +1,5 @@
-add_executable(select_client select_client.c)
-add_executable(select_server select_server.c)
+add_executable(close_client close_client.c)
+add_executable(close_server close_server.c)
 
-target_link_libraries(select_client)
-target_link_libraries(select_server)
+target_link_libraries(close_client)
+target_link_libraries(close_server)
