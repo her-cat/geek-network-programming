@@ -4,7 +4,6 @@
 #include <sys/select.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <signal.h>
 
 #define MAX_LINE 4096
 #define SERVER_PORT 8012
