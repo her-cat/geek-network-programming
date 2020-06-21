@@ -1,6 +1,8 @@
 #ifndef __MESSAGE_OBJECT_H__
 #define __MESSAGE_OBJECT_H__
 
+#include <stdint.h>
+
 #define MSG_PING 1
 #define MSG_PONG 2
 #define MSG_TYPE1 11
