@@ -25,11 +25,11 @@ int main(int argc, char **argv) {
 	server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	server_addr.sin_port = htons(SERVER_PORT);
 
-	if ((bind(listen_fd, (struct sockaddr *) &server_addr, sizeof(server_addr))) < 0) {
+	if (bind(listen_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
 		error(1, errno, "bind failed");
 	}
 
-	if ((listen(listen_fd, BACKLOG)) < 0) {
+	if (listen(listen_fd, BACKLOG) < 0) {
 		error(1, errno, "listen failed");
 	}
 
@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
 
 				sleep(sleeping_time);
 
-				if ((send(conn_fd, (char *) &pong_message, sizeof(pong_message), 0)) < 0) {
+				if (send(conn_fd, (char *) &pong_message, sizeof(pong_message), 0) < 0) {
 					error(1, errno, "send failure");
 				}
 
