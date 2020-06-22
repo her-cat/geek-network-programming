@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
 	char *send_one = "hello, ";
 
 	iov[0].iov_base = send_one;
-	iov[0].iov_len = sizeof(send_one);
+	iov[0].iov_len = strlen(send_one);
 	iov[1].iov_base = buf;
 
 	while (fgets(buf, sizeof(buf), stdin) != NULL) {
