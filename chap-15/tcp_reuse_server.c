@@ -18,6 +18,9 @@ int main(int argc, char **argv) {
 	server_addr.sin_port = htons(SERVER_PORT);
 	server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
+	int on = 1;
+	setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+
 	if (bind(listen_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
 		error(1, errno, "bind failed");
 	}
