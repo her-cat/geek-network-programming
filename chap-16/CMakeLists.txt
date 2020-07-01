@@ -1,0 +1,5 @@
+add_executable(tcp_explicit_length_client tcp_explicit_length_client.c)
+add_executable(tcp_explicit_length_server tcp_explicit_length_server.c)
+
+target_link_libraries(tcp_explicit_length_client)
+target_link_libraries(tcp_explicit_length_server)
