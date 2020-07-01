@@ -22,7 +22,7 @@ size_t read_message(int fd, char *buffer, size_t length) {
 		return rc < 0 ? -1 : 0;
 	}
 
-	msg_length = htonl(msg_length);
+	msg_length = ntohl(msg_length);
 
 	rc = readn(fd, &msg_type, sizeof(msg_type));
 	if (rc != sizeof(u_int32_t)) {
