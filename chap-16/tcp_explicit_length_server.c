@@ -1,6 +1,7 @@
 #include "../lib/common.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <signal.h>
 
 #define SERVER_PORT 8016
 #define BACKLOG 128

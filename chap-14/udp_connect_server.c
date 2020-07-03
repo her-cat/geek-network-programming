@@ -1,6 +1,7 @@
 #include "../lib/common.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <signal.h>
 
 #define SERVER_PORT 8014
 #define MAX_LINE 4096

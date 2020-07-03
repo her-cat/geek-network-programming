@@ -1,5 +1,6 @@
 #include "dict.h"
 #include <string.h>
+#include <stdio.h>
 
 /* -------------------------- private prototypes ---------------------------- */
 
@@ -73,4 +74,12 @@ unsigned int _dictGenHash(const unsigned char *buff, int len) {
 		hash = ((hash << 5) + hash) + *buff++;
 
 	return hash;
+}
+
+int main(int argc, char **argv) {
+	dict *d = dictCreate(10);
+	printf("%ld \n", d->used);
+	printf("%d \n", dictAdd(d, "test", "123"));
+	printf("%d \n", dictAdd(d, "test", "123"));
+	return EXIT_SUCCESS;
 }
