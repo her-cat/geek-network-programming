@@ -2,6 +2,7 @@
 #define __COMMON_H__
 
 #include <stdlib.h>
+#include <assert.h>
 
 #define DICT_OK 0
 #define DICT_ERR 1
@@ -20,7 +21,7 @@ typedef struct dict {
 } dict;
 
 dict *dictCreate(unsigned long size);
-dictEntry * dictAdd(dict *d, void *key, void *val);
+int dictAdd(dict *d, void *key, void *val);
 dictEntry * dictGet(dict *d, void *key);
 dictEntry * dictDel(dict *d, void *key);
 
