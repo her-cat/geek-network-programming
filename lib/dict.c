@@ -31,7 +31,7 @@ int dictAdd(dict *d, void *key, void *val) {
 	entry = malloc(sizeof(*entry));
 	entry->key = key;
 	entry->val = val;
-	entry->next = d->table[index]->next;
+	entry->next = d->table[index];
 	d->table[index] = entry;
 	d->used++;
 

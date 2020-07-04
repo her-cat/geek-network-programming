@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#define DICT_OK 0
-#define DICT_ERR 1
+#define DICT_OK 1
+#define DICT_ERR 0
 
 typedef struct dictEntry {
 	void *key;
