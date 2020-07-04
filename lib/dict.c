@@ -38,7 +38,7 @@ int dictAdd(dict *d, void *key, void *val) {
 	return DICT_OK;
 }
 
-dictEntry * dictGet(dict *d, void *key) {
+dictEntry *dictGet(dict *d, void *key) {
 	long index;
 	dictEntry *entry;
 
@@ -48,6 +48,30 @@ dictEntry * dictGet(dict *d, void *key) {
 	while (entry) {
 		if(key == entry->key)
 			break;
+		entry = entry->next;
+	}
+
+	return entry;
+}
+
+dictEntry *dictDel(dict *d, void *key) {
+	long index;
+	dictEntry *entry, *prevEntry = NULL;
+
+	index = d->mask & _dictGenHash(key, strlen(key));
+
+	entry = d->table[index];
+	while (entry) {
+		if(key == entry->key) {
+			if (prevEntry)
+				prevEntry->next = entry->next;
+			else
+				d->table[index] = entry->next;
+			d->used--;
+			free(entry);
+			return entry;
+		}
+		prevEntry = entry;
 		entry = entry->next;
 	}
 
@@ -103,5 +127,12 @@ int main(int argc, char **argv) {
 	printf("---- dictGet ----\n");
 	printf("get value: %s \n", dictGet(d, "test")->val);
 	printf("not exists key: %d \n", dictGet(d, "test123") == NULL);
+
+	printf("---- dictDel ----\n");
+	printf("del exists key: %s \n", dictDel(d, "test")->val);
+	printf("del not exists key: %d \n", dictDel(d, "test") == NULL);
+	printf("add after del: %d \n", dictAdd(d, "test", "1234"));
+	printf("get new value: %s \n", dictGet(d, "test")->val);
+
 	return EXIT_SUCCESS;
 }

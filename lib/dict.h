@@ -22,7 +22,7 @@ typedef struct dict {
 
 dict *dictCreate(unsigned long size);
 int dictAdd(dict *d, void *key, void *val);
-dictEntry * dictGet(dict *d, void *key);
-dictEntry * dictDel(dict *d, void *key);
+dictEntry *dictGet(dict *d, void *key);
+dictEntry *dictDel(dict *d, void *key);
 
 #endif
