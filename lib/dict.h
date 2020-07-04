@@ -1,5 +1,5 @@
-#ifndef __COMMON_H__
-#define __COMMON_H__
+#ifndef __DICT_H__
+#define __DICT_H__
 
 #include <stdlib.h>
 #include <assert.h>
