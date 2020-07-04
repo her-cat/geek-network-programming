@@ -102,6 +102,6 @@ int main(int argc, char **argv) {
 
 	printf("---- dictGet ----\n");
 	printf("get value: %s \n", dictGet(d, "test")->val);
-	printf("not exists key: %d \n", dictGet(d, "test") == NULL);
+	printf("not exists key: %d \n", dictGet(d, "test123") == NULL);
 	return EXIT_SUCCESS;
 }
