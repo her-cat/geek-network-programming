@@ -38,6 +38,22 @@ int dictAdd(dict *d, void *key, void *val) {
 	return DICT_OK;
 }
 
+dictEntry * dictGet(dict *d, void *key) {
+	long index;
+	dictEntry *entry;
+
+	index = d->mask & _dictGenHash(key, strlen(key));
+
+	entry = d->table[index];
+	while (entry) {
+		if(key == entry->key)
+			break;
+		entry = entry->next;
+	}
+
+	return entry;
+}
+
 int _dictInit(dict *d, unsigned long size) {
 	d->table = malloc(sizeof(dictEntry *) * size);
 	d->size = size;
@@ -78,8 +94,14 @@ unsigned int _dictGenHash(const unsigned char *buff, int len) {
 
 int main(int argc, char **argv) {
 	dict *d = dictCreate(10);
-	printf("%ld \n", d->used);
-	printf("%d \n", dictAdd(d, "test", "123"));
-	printf("%d \n", dictAdd(d, "test", "123"));
+	printf("used: %ld \n", d->used);
+
+	printf("---- dictAdd ----\n");
+	printf("first add: %d \n", dictAdd(d, "test", "123"));
+	printf("same key add: %d \n", dictAdd(d, "test", "123"));
+
+	printf("---- dictGet ----\n");
+	printf("get value: %s \n", dictGet(d, "test")->val);
+	printf("not exists key: %d \n", dictGet(d, "test") == NULL);
 	return EXIT_SUCCESS;
 }
