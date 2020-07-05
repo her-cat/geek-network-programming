@@ -2,7 +2,6 @@
 #define __DICT_H__
 
 #include <stdlib.h>
-#include <assert.h>
 
 #define DICT_OK 1
 #define DICT_ERR 0

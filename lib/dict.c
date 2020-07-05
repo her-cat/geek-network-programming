@@ -4,16 +4,17 @@
 
 /* -------------------------- private prototypes ---------------------------- */
 
-int _dictInit(dict *d, unsigned long size);
-long _dictKeyIndex(dict *d, const void *key);
-unsigned int _dictGenHash(const unsigned char *buff, int len);
+static int _dictInit(dict *d, unsigned long size);
+static long _dictKeyIndex(dict *d, const void *key);
+static unsigned int _dictGenHash(const unsigned char *buff, int len);
 
 /* ----------------------------- API implementation ------------------------- */
 
 dict *dictCreate(unsigned long size) {
 	dict *d = malloc(sizeof(dict));
-
-	assert(d != NULL);
+	if (d == NULL) {
+		return NULL;
+	}
 
 	_dictInit(d, size);
 
