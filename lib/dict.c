@@ -126,14 +126,14 @@ int main(int argc, char **argv) {
 	printf("same key add: %d \n", dictAdd(d, "test", "123"));
 
 	printf("---- dictGet ----\n");
-	printf("get value: %s \n", dictGet(d, "test")->val);
+	printf("get value: %s \n", (char *)dictGet(d, "test")->val);
 	printf("not exists key: %d \n", dictGet(d, "test123") == NULL);
 
 	printf("---- dictDel ----\n");
-	printf("del exists key: %s \n", dictDel(d, "test")->val);
+	printf("del exists key: %s \n", (char *)dictDel(d, "test")->val);
 	printf("del not exists key: %d \n", dictDel(d, "test") == NULL);
 	printf("add after del: %d \n", dictAdd(d, "test", "1234"));
-	printf("get new value: %s \n", dictGet(d, "test")->val);
+	printf("get new value: %s \n", (char *)dictGet(d, "test")->val);
 
 	return EXIT_SUCCESS;
 }
