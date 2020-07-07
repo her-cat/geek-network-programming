@@ -117,6 +117,8 @@ unsigned int _dictGenHash(const unsigned char *buff, int len) {
 	return hash;
 }
 
+#ifdef DICT_TEST_MAIN
+
 int main(int argc, char **argv) {
 	dict *d = dictCreate(10);
 	printf("used: %ld \n", d->used);
@@ -137,3 +139,5 @@ int main(int argc, char **argv) {
 
 	return EXIT_SUCCESS;
 }
+
+#endif
