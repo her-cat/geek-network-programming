@@ -47,7 +47,7 @@ dictEntry *dictGet(dict *d, void *key) {
 
 	entry = d->table[index];
 	while (entry) {
-		if(key == entry->key)
+		if(strcmp(key, entry->key) == 0)
 			break;
 		entry = entry->next;
 	}
@@ -100,7 +100,7 @@ long _dictKeyIndex(dict *d, const void *key) {
 
 	he = d->table[idx];
 	while (he) {
-		if(key == he->key)
+		if(strcmp(key, he->key) == 0)
 			return -1;
 		he = he->next;
 	}

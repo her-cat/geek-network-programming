@@ -5,13 +5,14 @@
 #include <arpa/inet.h>
 
 #define HEADERS_BUCKET 10
-#define SERVER_PORT 8016
+#define SERVER_PORT 7777
 #define MAX_LINE 4096
 #define BACKLOG 128
 
 int create_web_server_socket(int port);
 int read_line(int fd, char *buf, int size);
 int parse_header(int fd, dict *headers);
+void add_request_line_to_dict(dict *headers, char *buf, size_t size);
 int add_header_to_dict(dict *headers, char *buf, size_t size);
 
 int create_web_server_socket(int port) {
@@ -69,10 +70,7 @@ int parse_header(int fd, dict *headers) {
 		return 0;
 	}
 
-	if (add_header_to_dict(headers, buf, strlen(buf)) < 0) {
-		printf("parse request line failed");
-		return 0;
-	}
+	add_request_line_to_dict(headers, buf, strlen(buf));
 
 	while ((n = read_line(fd, buf, MAX_LINE)) > 0) {
 		if (n == 1 && buf[0] == '\n') {
@@ -86,6 +84,30 @@ int parse_header(int fd, dict *headers) {
 	}
 
 	return n;
+}
+
+void add_request_line_to_dict(dict *headers, char *buf, size_t size) {
+	int i = 0, n = 0;
+	char values[2][256]; 
+	char *keys[2] = {"method", "uri"};
+	while (n < 2 && size--) {
+		if (*buf == ' ') {
+			values[n][i] = '\0';
+			if (dictAdd(headers, keys[n], values[n]) == DICT_ERR) {
+				printf("add header (%s) failed \n", keys[n]);
+			}
+			n++;
+			i = 0;
+			*buf++;
+			continue;
+		}
+		values[n][i++] = *buf++;
+	}
+
+	buf[size-1] = '\0';
+	if (dictAdd(headers, "version", buf) == DICT_ERR) {
+		printf("add header (version) failed \n");
+	}
 }
 
 int add_header_to_dict(dict *headers, char *buf, size_t size) {
