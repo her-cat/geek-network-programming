@@ -13,7 +13,6 @@ int create_web_server_socket(int port);
 int read_line(int fd, char *buf, int size);
 int parse_header(int fd, dict *headers);
 void add_request_line_to_dict(dict *headers, char *buf, size_t size);
-int add_header_to_dict(dict *headers, char *buf, size_t size);
 
 int create_web_server_socket(int port) {
 	int listen_fd, on = 1;
@@ -75,11 +74,8 @@ int parse_header(int fd, dict *headers) {
 	while ((n = read_line(fd, buf, MAX_LINE)) > 0) {
 		if (n == 1 && buf[0] == '\n') {
 			break;
-		} else if (add_header_to_dict(headers, buf, strlen(buf)) < 0) {
-			printf("parse header line failed");
-			return 0;
 		}
-		printf("bytes:%d, line:%s", n, buf);
+		printf("header: %s", buf);
 		bzero(&buf, MAX_LINE);
 	}
 
@@ -108,10 +104,6 @@ void add_request_line_to_dict(dict *headers, char *buf, size_t size) {
 	if (dictAdd(headers, "version", buf) == DICT_ERR) {
 		printf("add header (version) failed \n");
 	}
-}
-
-int add_header_to_dict(dict *headers, char *buf, size_t size) {
-	return 1;
 }
 
 int main(int argc, char **argv) {
