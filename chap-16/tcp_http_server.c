@@ -12,7 +12,7 @@
 int create_web_server_socket(int port);
 int read_line(int fd, char *buf, int size);
 int parse_header(int fd, dict *headers);
-void add_request_line_to_dict(dict *headers, char *buf, size_t size);
+void add_request_line_to_dict(dict *headers, char buf[], size_t size);
 
 int create_web_server_socket(int port) {
 	int listen_fd, on = 1;
@@ -82,28 +82,17 @@ int parse_header(int fd, dict *headers) {
 	return n;
 }
 
-void add_request_line_to_dict(dict *headers, char *buf, size_t size) {
-	int i = 0, n = 0;
-	char values[2][256]; 
-	char *keys[2] = {"method", "uri"};
-	while (n < 2 && size--) {
-		if (*buf == ' ') {
-			values[n][i] = '\0';
-			if (dictAdd(headers, keys[n], values[n]) == DICT_ERR) {
-				printf("add header (%s) failed \n", keys[n]);
-			}
-			n++;
-			i = 0;
-			*buf++;
-			continue;
-		}
-		values[n][i++] = *buf++;
-	}
-
+void add_request_line_to_dict(dict *headers, char buf[], size_t size) {
 	buf[size-1] = '\0';
-	if (dictAdd(headers, "version", buf) == DICT_ERR) {
-		printf("add header (version) failed \n");
-	}
+	char method[6], uri[size - 16], version[10], *p = buf;
+
+	strcpy(method, strsep(&p, " "));
+	strcpy(uri, strsep(&p, " "));
+	strcpy(version, strsep(&p, " "));
+
+	dictAdd(headers, "method", method);
+	dictAdd(headers, "uri", uri);
+	dictAdd(headers, "version", version);
 }
 
 int main(int argc, char **argv) {
