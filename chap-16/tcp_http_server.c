@@ -5,7 +5,7 @@
 #include <arpa/inet.h>
 
 #define HEADERS_BUCKET 10
-#define SERVER_PORT 7777
+#define SERVER_PORT 8016
 #define MAX_LINE 4096
 #define BACKLOG 128
 
