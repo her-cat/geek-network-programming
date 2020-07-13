@@ -2,6 +2,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 #define SERVER_PORT 8017
 #define BACKLOG 128
