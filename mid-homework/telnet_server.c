@@ -73,8 +73,12 @@ void handle_client_request(int conn_fd, struct sockaddr_in client_addr) {
 			char *result = execute_cmd("ls");
 			if (reply_client_message(conn_fd, result) == 0)
 				break;
+		} else if (strncmp(recv_line, "pwd", 3) == 0) {
+			char *result = getcwd(NULL, 0);
+			if (reply_client_message(conn_fd, result) == 0)
+				break;
 		} else {
-			if (reply_client_message(conn_fd, "error:unknow command \n") == 0)
+			if (reply_client_message(conn_fd, recv_line) == 0)
 				break;
 		}
 	}
