@@ -7,12 +7,14 @@
 #define SERVER_PORT 8017
 #define BACKLOG 128
 #define MAX_LINE 4096
+#define FILE_MAX_BUFFER 256
 
 int create_tcp_server_socket(int port);
 int accept_client_connect(int listen_fd, struct sockaddr_in *client_addr, socklen_t *client_len);
 void handle_client_request(int conn_fd, struct sockaddr_in client_addr);
 int read_client_message(int conn_fd, char *message, size_t size);
 int reply_client_message(int conn_fd, char *message);
+char *execute_cmd(char *cmd);
 
 int create_tcp_server_socket(int port) {
 	int listen_fd, on = 1;
@@ -67,10 +69,14 @@ void handle_client_request(int conn_fd, struct sockaddr_in client_addr) {
 			reply_client_message(conn_fd, "good bye! \n");
 			printf("client quit \n");
 			break;
+		} else if (strncmp(recv_line, "ls", 2) == 0) {
+			char *result = execute_cmd("ls");
+			if (reply_client_message(conn_fd, result) == 0)
+				break;
+		} else {
+			if (reply_client_message(conn_fd, "error:unknow command \n") == 0)
+				break;
 		}
-
-		if (reply_client_message(conn_fd, recv_line) == 0)
-			break;
 	}
 }
 
@@ -91,7 +97,7 @@ int reply_client_message(int conn_fd, char *message) {
 	int send_rt;
 	char send_line[MAX_LINE];
 
-	sprintf(send_line, "server:%s", message);
+	sprintf(send_line, "[server] %s", message);
 
 	send_rt = send(conn_fd, send_line, strlen(send_line), 0);
 	if (send_rt < 0)
@@ -100,6 +106,29 @@ int reply_client_message(int conn_fd, char *message) {
 		printf("send failed: client closed \n");
 
 	return send_rt;
+}
+
+char *execute_cmd(char *cmd) {
+	FILE *file;
+	char buf[FILE_MAX_BUFFER], *data, *data_idx;
+
+	data = malloc(16384);
+	bzero(data, sizeof(data));
+	data_idx = data;
+	file = popen(cmd, "r");
+
+	if (!file) return data;
+
+	while (!feof(file)) {
+		if (fgets(buf, FILE_MAX_BUFFER, file) == NULL)
+			break;
+		int len = strlen(buf);
+		memcpy(data_idx, buf, len);
+		data_idx += len;
+	}
+
+	pclose(file);
+	return data;
 }
 
 int main(int argc, char **argv) {
