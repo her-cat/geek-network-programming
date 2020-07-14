@@ -77,6 +77,13 @@ void handle_client_request(int conn_fd, struct sockaddr_in client_addr) {
 			char *result = getcwd(NULL, 0);
 			if (reply_client_message(conn_fd, result) == 0)
 				break;
+		} else if (strncmp(recv_line, "cd", 2) == 0) {
+			char path[256];
+			bzero(path, sizeof(path));
+			// + 3:排除 cd 及空格，- 5: 排除 cd、空格及 \r\n 的长度
+			memcpy(path, recv_line + 3, strlen(recv_line) - 5);
+			if (chdir(path) < 0)
+				reply_client_message(conn_fd, "切换目录失败\n");
 		} else {
 			if (reply_client_message(conn_fd, recv_line) == 0)
 				break;
