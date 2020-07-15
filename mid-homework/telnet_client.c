@@ -11,8 +11,8 @@
 #define KEEP_ALIVE_PROBE_TIMES 3
 
 int connect_server(const char *ip_addr, const int port);
-int read_message(int socket_fd, struct msg_obj *msg);
-int send_message(int socket_fd, struct msg_obj *msg);
+int read_message(int socket_fd, struct msg_obj *msg, size_t size);
+int send_message(int socket_fd, struct msg_obj *msg, size_t size);
 
 int connect_server(const char *ip_addr, const int port) {
     int socket_fd;
@@ -34,8 +34,8 @@ int connect_server(const char *ip_addr, const int port) {
     return socket_fd;
 }
 
-int read_message(int socket_fd, struct msg_obj *msg) {
-    int recv_rt = read(socket_fd, (char *) msg, sizeof(msg));
+int read_message(int socket_fd, struct msg_obj *msg, size_t size) {
+    int recv_rt = read(socket_fd, (char *) msg, size);
 	if (recv_rt < 0)
 		printf("read failed \n");
 	else if (recv_rt == 0)
@@ -44,10 +44,10 @@ int read_message(int socket_fd, struct msg_obj *msg) {
 	return recv_rt;
 }
 
-int send_message(int socket_fd, struct msg_obj *msg) {
+int send_message(int socket_fd, struct msg_obj *msg, size_t size) {
 	int send_rt;
 
-	send_rt = send(socket_fd, (char *) msg, sizeof(msg), 0);
+	send_rt = send(socket_fd, (char *) msg, size, 0);
 	if (send_rt < 0)
 		printf("send failed \n");
 	else if (send_rt == 0)
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
             msg.type = htonl(MSG_PING);
             strcpy(msg.data, "testdata");
             printf("send data: %s \n", msg.data);
-            if (send_message(socket_fd, &msg) == 0)
+            if (send_message(socket_fd, &msg, sizeof(msg)) == 0)
                 break;
 
             tv.tv_sec = KEEP_ALIVE_INTERVAL;
@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
         tv.tv_sec = KEEP_ALIVE_TIME;
 
         if (FD_ISSET(socket_fd, &read_mask)) {
-            if (read_message(socket_fd, &msg) == 0)
+            if (read_message(socket_fd, &msg, sizeof(msg)) == 0)
                 break;
 
             switch (ntohl(msg.type)) {
@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
                 continue;
 
             msg.type = htonl(MSG_TEXT);
-            if (send_message(socket_fd, &msg) == 0)
+            if (send_message(socket_fd, &msg, sizeof(msg)) == 0)
                 break;
         }
     }

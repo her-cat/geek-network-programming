@@ -12,8 +12,8 @@
 int create_tcp_server_socket(int port);
 int accept_client_connect(int listen_fd, struct sockaddr_in *client_addr, socklen_t *client_len);
 void handle_client_request(int conn_fd, struct sockaddr_in client_addr);
-int read_client_message(int conn_fd, struct msg_obj *msg);
-int reply_client_message(int conn_fd, struct msg_obj msg);
+int read_client_message(int conn_fd, struct msg_obj *msg, size_t size);
+int reply_client_message(int conn_fd, struct msg_obj *msg, size_t size);
 char *execute_system_cmd(char *cmd);
 int execute_cmd(int conn_fd, char *cmd);
 
@@ -60,7 +60,7 @@ void handle_client_request(int conn_fd, struct sockaddr_in client_addr) {
 	printf("%s:%d connected... \n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
 	for (;;) {
-		recv_rt = read_client_message(conn_fd, &msg);
+		recv_rt = read_client_message(conn_fd, &msg, sizeof(msg));
 
 		if (recv_rt < 0)
 			continue;
@@ -70,7 +70,7 @@ void handle_client_request(int conn_fd, struct sockaddr_in client_addr) {
 		printf("msg_type:%d \n", ntohl(msg.type));
 		
 		switch (ntohl(msg.type)) {
-            case MSG_PONG:
+            case MSG_PING:
                 printf("received server pong. \n");
                 break;
             case MSG_TEXT:
@@ -85,8 +85,8 @@ void handle_client_request(int conn_fd, struct sockaddr_in client_addr) {
 	}
 }
 
-int read_client_message(int conn_fd, struct msg_obj *msg) {
-	int recv_rt = read(conn_fd, (char *) msg, sizeof(msg));
+int read_client_message(int conn_fd, struct msg_obj *msg, size_t size) {
+	int recv_rt = read(conn_fd, (char *) msg, size);
 	if (recv_rt < 0)
 		printf("read failed \n");
 	else if (recv_rt == 0)
@@ -95,10 +95,10 @@ int read_client_message(int conn_fd, struct msg_obj *msg) {
 	return recv_rt;
 }
 
-int reply_client_message(int conn_fd, struct msg_obj msg) {
+int reply_client_message(int conn_fd, struct msg_obj *msg, size_t size) {
 	int send_rt;
 
-	send_rt = send(conn_fd, (char *) &msg, sizeof(msg), 0);
+	send_rt = send(conn_fd, (char *) msg, size, 0);
 	if (send_rt < 0)
 		printf("send failed \n");
 	else if (send_rt == 0)
@@ -136,7 +136,7 @@ int execute_cmd(int conn_fd, char *cmd) {
 
 	if (strncmp(cmd, "quit", 4) == 0) {
 		strcpy(msg.data, "good bye!");
-		reply_client_message(conn_fd, msg);
+		reply_client_message(conn_fd, &msg, sizeof(msg));
 		printf("client quit \n");
 		return -1;
 	} else if (strncmp(cmd, "ls", 2) == 0) {
@@ -154,7 +154,7 @@ int execute_cmd(int conn_fd, char *cmd) {
 		strcpy(msg.data, "unknow command");
 	}
 
-	if (reply_client_message(conn_fd, msg) == 0)
+	if (reply_client_message(conn_fd, &msg, sizeof(msg)) == 0)
 		return -1;
 
 	return 1;
