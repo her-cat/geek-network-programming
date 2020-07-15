@@ -59,6 +59,7 @@ void handle_client_request(int conn_fd, struct sockaddr_in client_addr) {
 	printf("%s:%d connected... \n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
 	for (;;) {
+		bzero(&recv_line, strlen(recv_line));
 		recv_rt = read_client_message(conn_fd, recv_line, MAX_LINE);
 		if (recv_rt < 0)
 			continue;
@@ -66,7 +67,7 @@ void handle_client_request(int conn_fd, struct sockaddr_in client_addr) {
 			break;
 
 		if (strncmp(recv_line, "quit", 4) == 0) {
-			reply_client_message(conn_fd, "good bye! \n");
+			reply_client_message(conn_fd, "good bye!");
 			printf("client quit \n");
 			break;
 		} else if (strncmp(recv_line, "ls", 2) == 0) {
@@ -80,12 +81,12 @@ void handle_client_request(int conn_fd, struct sockaddr_in client_addr) {
 		} else if (strncmp(recv_line, "cd", 2) == 0) {
 			char path[256];
 			bzero(path, sizeof(path));
-			// + 3:排除 cd 及空格，- 5: 排除 cd、空格及 \r\n 的长度
-			memcpy(path, recv_line + 3, strlen(recv_line) - 5);
+			// + 3:排除 cd 及空格，- 4: 排除 cd、空格及 \r\n 的长度
+			memcpy(path, recv_line + 3, strlen(recv_line) - 4);
 			if (chdir(path) < 0)
-				reply_client_message(conn_fd, "切换目录失败\n");
+				reply_client_message(conn_fd, "cahnge dir failed");
 		} else {
-			if (reply_client_message(conn_fd, recv_line) == 0)
+			if (reply_client_message(conn_fd, "unknow command") == 0)
 				break;
 		}
 	}
@@ -97,20 +98,16 @@ int read_client_message(int conn_fd, char *message, size_t size) {
 		printf("read failed \n");
 	else if (recv_rt == 0)
 		printf("client closed \n");
-
-	message[recv_rt] = '\0';
-	printf("received %d bytes:%s", recv_rt - 2, message);
+	else
+		printf("received %d bytes:%s", recv_rt - 1, message);
 
 	return recv_rt;
 }
 
 int reply_client_message(int conn_fd, char *message) {
 	int send_rt;
-	char send_line[MAX_LINE];
 
-	sprintf(send_line, "[server] %s", message);
-
-	send_rt = send(conn_fd, send_line, strlen(send_line), 0);
+	send_rt = send(conn_fd, message, strlen(message), 0);
 	if (send_rt < 0)
 		printf("send failed \n");
 	else if (send_rt == 0)
