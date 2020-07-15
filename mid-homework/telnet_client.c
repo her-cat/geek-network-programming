@@ -1,3 +1,4 @@
+#include "./msg_obj.h"
 #include "../lib/common.h"
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -5,11 +6,13 @@
 #include <arpa/inet.h>
 
 #define SERVER_PORT 8017
-#define MAX_LINE 4096
+#define KEEP_ALIVE_TIME 10
+#define KEEP_ALIVE_INTERVAL 3
+#define KEEP_ALIVE_PROBE_TIMES 3
 
 int connect_server(const char *ip_addr, const int port);
-int read_message(int socket_fd, char *message, size_t size);
-int send_message(int socket_fd, char *message);
+int read_message(int socket_fd, struct msg_obj *msg);
+int send_message(int socket_fd, struct msg_obj *msg);
 
 int connect_server(const char *ip_addr, const int port) {
     int socket_fd;
@@ -31,8 +34,8 @@ int connect_server(const char *ip_addr, const int port) {
     return socket_fd;
 }
 
-int read_message(int socket_fd, char *message, size_t size) {
-    int recv_rt = read(socket_fd, message, size);
+int read_message(int socket_fd, struct msg_obj *msg) {
+    int recv_rt = read(socket_fd, (char *) msg, sizeof(msg));
 	if (recv_rt < 0)
 		printf("read failed \n");
 	else if (recv_rt == 0)
@@ -41,10 +44,10 @@ int read_message(int socket_fd, char *message, size_t size) {
 	return recv_rt;
 }
 
-int send_message(int socket_fd, char *message) {
+int send_message(int socket_fd, struct msg_obj *msg) {
 	int send_rt;
 
-	send_rt = send(socket_fd, message, strlen(message), 0);
+	send_rt = send(socket_fd, (char *) msg, sizeof(msg), 0);
 	if (send_rt < 0)
 		printf("send failed \n");
 	else if (send_rt == 0)
@@ -58,10 +61,11 @@ int main(int argc, char **argv) {
         error(1, 0, "usage: telnet_client <IP address> \n");
     }
 
-    int socket_fd;
+    int socket_fd, rt, heartbeats = 0;
     char send_line[MAX_LINE], recv_line[MAX_LINE];
     fd_set read_fds, read_mask;
-    struct timeval timeout;
+    struct timeval tv;
+    struct msg_obj msg;
 
     socket_fd = connect_server(argv[1], SERVER_PORT);
 
@@ -69,30 +73,57 @@ int main(int argc, char **argv) {
     FD_SET(0, &read_fds);
     FD_SET(socket_fd, &read_fds);
 
-    timeout.tv_sec = 1;
-    timeout.tv_usec = 0;
+    tv.tv_sec = KEEP_ALIVE_TIME;
+    tv.tv_usec = 0;
 
     while (1) {
         read_mask = read_fds;
         bzero(&send_line, strlen(send_line));
         bzero(&recv_line, strlen(recv_line));
 
-        if (select(socket_fd + 1, &read_mask, NULL, NULL, &timeout) < 0) {
+        rt = select(socket_fd + 1, &read_mask, NULL, NULL, &tv);
+        if (rt < 0) {
             error(1, errno, "select failed");
+        } else if (rt == 0) {
+            if (++heartbeats > KEEP_ALIVE_PROBE_TIMES)
+                error(1, 0, "connection dead \n");
+
+            msg.type = htonl(MSG_PING);
+            strcpy(msg.data, "testdata");
+            printf("send data: %s \n", msg.data);
+            if (send_message(socket_fd, &msg) == 0)
+                break;
+
+            tv.tv_sec = KEEP_ALIVE_INTERVAL;
+            continue;
         }
 
+        heartbeats = 0;
+        tv.tv_sec = KEEP_ALIVE_TIME;
+
         if (FD_ISSET(socket_fd, &read_mask)) {
-            if (read_message(socket_fd, recv_line, MAX_LINE) == 0)
+            if (read_message(socket_fd, &msg) == 0)
                 break;
-            fputs(recv_line, stdout);
-            fputs("\n", stdout);
+
+            switch (ntohl(msg.type)) {
+                case MSG_PONG:
+                    printf("received server pong. \n");
+                    break;
+                case MSG_TEXT:
+                    fputs(msg.data, stdout);
+                    fputs("\n", stdout);
+                default:
+                    printf("unknow message type.");
+                    break;
+            }
         }
 
         if (FD_ISSET(0, &read_mask)) {
-            if(fgets(send_line, MAX_LINE, stdin) == NULL)
+            if(fgets(msg.data, MAX_LINE, stdin) == NULL)
                 continue;
 
-            if (send_message(socket_fd, send_line) == 0)
+            msg.type = htonl(MSG_TEXT);
+            if (send_message(socket_fd, &msg) == 0)
                 break;
         }
     }

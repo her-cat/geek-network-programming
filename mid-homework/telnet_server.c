@@ -1,3 +1,4 @@
+#include "./msg_obj.h"
 #include "../lib/common.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -6,15 +7,15 @@
 
 #define SERVER_PORT 8017
 #define BACKLOG 128
-#define MAX_LINE 4096
 #define FILE_MAX_BUFFER 256
 
 int create_tcp_server_socket(int port);
 int accept_client_connect(int listen_fd, struct sockaddr_in *client_addr, socklen_t *client_len);
 void handle_client_request(int conn_fd, struct sockaddr_in client_addr);
-int read_client_message(int conn_fd, char *message, size_t size);
-int reply_client_message(int conn_fd, char *message);
-char *execute_cmd(char *cmd);
+int read_client_message(int conn_fd, struct msg_obj *msg);
+int reply_client_message(int conn_fd, struct msg_obj msg);
+char *execute_system_cmd(char *cmd);
+int execute_cmd(int conn_fd, char *cmd);
 
 int create_tcp_server_socket(int port) {
 	int listen_fd, on = 1;
@@ -54,60 +55,50 @@ int accept_client_connect(int listen_fd, struct sockaddr_in *client_addr, sockle
 
 void handle_client_request(int conn_fd, struct sockaddr_in client_addr) {
 	int recv_rt;
-	char recv_line[MAX_LINE];
+	struct msg_obj msg;
 
 	printf("%s:%d connected... \n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
 	for (;;) {
-		bzero(&recv_line, strlen(recv_line));
-		recv_rt = read_client_message(conn_fd, recv_line, MAX_LINE);
+		recv_rt = read_client_message(conn_fd, &msg);
+
 		if (recv_rt < 0)
 			continue;
 		else if (recv_rt == 0)
 			break;
+		
+		printf("msg_type:%d \n", ntohl(msg.type));
+		
+		switch (ntohl(msg.type)) {
+            case MSG_PONG:
+                printf("received server pong. \n");
+                break;
+            case MSG_TEXT:
+				if (execute_cmd(conn_fd, msg.data) < 0)
+					break;
+            default:
+                printf("unknow message type. \n");
+                break;
+        }
 
-		if (strncmp(recv_line, "quit", 4) == 0) {
-			reply_client_message(conn_fd, "good bye!");
-			printf("client quit \n");
-			break;
-		} else if (strncmp(recv_line, "ls", 2) == 0) {
-			char *result = execute_cmd("ls");
-			if (reply_client_message(conn_fd, result) == 0)
-				break;
-		} else if (strncmp(recv_line, "pwd", 3) == 0) {
-			char *result = getcwd(NULL, 0);
-			if (reply_client_message(conn_fd, result) == 0)
-				break;
-		} else if (strncmp(recv_line, "cd", 2) == 0) {
-			char path[256];
-			bzero(path, sizeof(path));
-			// + 3:排除 cd 及空格，- 4: 排除 cd、空格及 \r\n 的长度
-			memcpy(path, recv_line + 3, strlen(recv_line) - 4);
-			if (chdir(path) < 0)
-				reply_client_message(conn_fd, "cahnge dir failed");
-		} else {
-			if (reply_client_message(conn_fd, "unknow command") == 0)
-				break;
-		}
+		printf("received %d bytes:%s \n", recv_rt - 1, msg.data);
 	}
 }
 
-int read_client_message(int conn_fd, char *message, size_t size) {
-	int recv_rt = read(conn_fd, message, size);
+int read_client_message(int conn_fd, struct msg_obj *msg) {
+	int recv_rt = read(conn_fd, (char *) msg, sizeof(msg));
 	if (recv_rt < 0)
 		printf("read failed \n");
 	else if (recv_rt == 0)
 		printf("client closed \n");
-	else
-		printf("received %d bytes:%s", recv_rt - 1, message);
 
 	return recv_rt;
 }
 
-int reply_client_message(int conn_fd, char *message) {
+int reply_client_message(int conn_fd, struct msg_obj msg) {
 	int send_rt;
 
-	send_rt = send(conn_fd, message, strlen(message), 0);
+	send_rt = send(conn_fd, (char *) &msg, sizeof(msg), 0);
 	if (send_rt < 0)
 		printf("send failed \n");
 	else if (send_rt == 0)
@@ -116,7 +107,7 @@ int reply_client_message(int conn_fd, char *message) {
 	return send_rt;
 }
 
-char *execute_cmd(char *cmd) {
+char *execute_system_cmd(char *cmd) {
 	FILE *file;
 	char buf[FILE_MAX_BUFFER], *data, *data_idx;
 
@@ -137,6 +128,36 @@ char *execute_cmd(char *cmd) {
 
 	pclose(file);
 	return data;
+}
+
+int execute_cmd(int conn_fd, char *cmd) {
+	struct msg_obj msg;
+	msg.type = htonl(MSG_TEXT);
+
+	if (strncmp(cmd, "quit", 4) == 0) {
+		strcpy(msg.data, "good bye!");
+		reply_client_message(conn_fd, msg);
+		printf("client quit \n");
+		return -1;
+	} else if (strncmp(cmd, "ls", 2) == 0) {
+		strcpy(msg.data, execute_system_cmd("ls"));
+	} else if (strncmp(cmd, "pwd", 3) == 0) {
+		strcpy(msg.data, getcwd(NULL, 0));
+	} else if (strncmp(cmd, "cd", 2) == 0) {
+		char path[256];
+		bzero(path, sizeof(path));
+		// + 3:排除 cd 及空格，- 4: 排除 cd、空格及 \r\n 的长度
+		memcpy(path, cmd + 3, strlen(cmd) - 4);
+		if (chdir(path) < 0)
+			strcpy(msg.data, "change dir failed");
+	} else {
+		strcpy(msg.data, "unknow command");
+	}
+
+	if (reply_client_message(conn_fd, msg) == 0)
+		return -1;
+
+	return 1;
 }
 
 int main(int argc, char **argv) {
