@@ -60,10 +60,13 @@ int accept_client_connect(int listen_fd, struct sockaddr_in *client_addr, sockle
 }
 
 void handle_client_request(int conn_fd, struct sockaddr_in client_addr) {
-	int flag = 1, recv_rt;
+	char client_ip[16];
 	struct msg_obj msg;
+	int flag = 1, recv_rt, client_port;
 
-	LOG_INFO("%s:%d connected...", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+	client_port = ntohs(client_addr.sin_port);
+	strcpy(client_ip, inet_ntoa(client_addr.sin_addr));
+	LOG_INFO("%s:%d connected...", client_ip, client_port);
 
 	while (flag) {
 		bzero(&msg, sizeof(msg));
@@ -77,12 +80,12 @@ void handle_client_request(int conn_fd, struct sockaddr_in client_addr) {
 		switch (ntohl(msg.type)) {
             case MSG_PING:
 				msg.type = htonl(MSG_PONG);
-                LOG_INFO("received client ping.");
+                LOG_INFO("received %s:%d ping", client_ip, client_port);
 				if (reply_client_message(conn_fd, &msg, sizeof(msg)) == 0)
 					flag = 0;
                 break;
             case MSG_TEXT:
-				LOG_INFO("received %ld bytes:%s", strlen(msg.data), msg.data);
+				LOG_INFO("received %s:%d %ld bytes:%s", client_ip, client_port, strlen(msg.data), msg.data);
 				if (execute_cmd(conn_fd, msg.data) < 0)
 					flag = 0;
 				break;

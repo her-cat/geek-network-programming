@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
 
             switch (ntohl(msg.type)) {
                 case MSG_PONG:
-                    printf("received server pong. \n");
+                    printf("received server pong \n");
                     break;
                 case MSG_TEXT:
                     fputs(msg.data, stdout);
