@@ -78,6 +78,7 @@ int main(int argc, char **argv) {
 
     while (1) {
         read_mask = read_fds;
+        bzero(&msg, sizeof(msg));
         bzero(&send_line, strlen(send_line));
         bzero(&recv_line, strlen(recv_line));
 
@@ -89,8 +90,6 @@ int main(int argc, char **argv) {
                 error(1, 0, "connection dead \n");
 
             msg.type = htonl(MSG_PING);
-            strcpy(msg.data, "testdata");
-            printf("send data: %s \n", msg.data);
             if (send_message(socket_fd, &msg, sizeof(msg)) == 0)
                 break;
 
@@ -112,6 +111,7 @@ int main(int argc, char **argv) {
                 case MSG_TEXT:
                     fputs(msg.data, stdout);
                     fputs("\n", stdout);
+                    break;
                 default:
                     printf("unknow message type.");
                     break;

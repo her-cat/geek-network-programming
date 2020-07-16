@@ -4,10 +4,15 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <signal.h>
+#include <sys/time.h>
+#include <time.h>
 
 #define SERVER_PORT 8017
 #define BACKLOG 128
 #define FILE_MAX_BUFFER 256
+
+#define LOG_INFO(MSG, ...) \
+  fprintf(stderr, "[%s][INFO] " MSG "\n", log_time(), ##__VA_ARGS__)
 
 int create_tcp_server_socket(int port);
 int accept_client_connect(int listen_fd, struct sockaddr_in *client_addr, socklen_t *client_len);
@@ -16,6 +21,7 @@ int read_client_message(int conn_fd, struct msg_obj *msg, size_t size);
 int reply_client_message(int conn_fd, struct msg_obj *msg, size_t size);
 char *execute_system_cmd(char *cmd);
 int execute_cmd(int conn_fd, char *cmd);
+char *log_time();
 
 int create_tcp_server_socket(int port) {
 	int listen_fd, on = 1;
@@ -46,7 +52,7 @@ int create_tcp_server_socket(int port) {
 int accept_client_connect(int listen_fd, struct sockaddr_in *client_addr, socklen_t *client_len) {
 	int conn_fd = accept(listen_fd, (struct sockaddr *) client_addr, client_len);
 	if (conn_fd < 0 || errno == EINTR) {
-		printf("connect failed \n");
+		LOG_INFO("connect failed");
 		return -1;
 	}
 
@@ -54,43 +60,45 @@ int accept_client_connect(int listen_fd, struct sockaddr_in *client_addr, sockle
 }
 
 void handle_client_request(int conn_fd, struct sockaddr_in client_addr) {
-	int recv_rt;
+	int flag = 1, recv_rt;
 	struct msg_obj msg;
 
-	printf("%s:%d connected... \n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+	LOG_INFO("%s:%d connected...", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
-	for (;;) {
+	while (flag) {
+		bzero(&msg, sizeof(msg));
 		recv_rt = read_client_message(conn_fd, &msg, sizeof(msg));
 
 		if (recv_rt < 0)
 			continue;
 		else if (recv_rt == 0)
 			break;
-		
-		printf("msg_type:%d \n", ntohl(msg.type));
-		
+
 		switch (ntohl(msg.type)) {
             case MSG_PING:
-                printf("received server pong. \n");
+				msg.type = htonl(MSG_PONG);
+                LOG_INFO("received client ping.");
+				if (reply_client_message(conn_fd, &msg, sizeof(msg)) == 0)
+					flag = 0;
                 break;
             case MSG_TEXT:
+				LOG_INFO("received %ld bytes:%s", strlen(msg.data), msg.data);
 				if (execute_cmd(conn_fd, msg.data) < 0)
-					break;
+					flag = 0;
+				break;
             default:
-                printf("unknow message type. \n");
+                LOG_INFO("unknow message type.");
                 break;
         }
-
-		printf("received %d bytes:%s \n", recv_rt - 1, msg.data);
 	}
 }
 
 int read_client_message(int conn_fd, struct msg_obj *msg, size_t size) {
 	int recv_rt = read(conn_fd, (char *) msg, size);
 	if (recv_rt < 0)
-		printf("read failed \n");
+		LOG_INFO("read failed");
 	else if (recv_rt == 0)
-		printf("client closed \n");
+		LOG_INFO("client closed");
 
 	return recv_rt;
 }
@@ -100,9 +108,9 @@ int reply_client_message(int conn_fd, struct msg_obj *msg, size_t size) {
 
 	send_rt = send(conn_fd, (char *) msg, size, 0);
 	if (send_rt < 0)
-		printf("send failed \n");
+		LOG_INFO("send failed");
 	else if (send_rt == 0)
-		printf("send failed: client closed \n");
+		LOG_INFO("send failed: client closed");
 
 	return send_rt;
 }
@@ -137,7 +145,7 @@ int execute_cmd(int conn_fd, char *cmd) {
 	if (strncmp(cmd, "quit", 4) == 0) {
 		strcpy(msg.data, "good bye!");
 		reply_client_message(conn_fd, &msg, sizeof(msg));
-		printf("client quit \n");
+		LOG_INFO("client quit");
 		return -1;
 	} else if (strncmp(cmd, "ls", 2) == 0) {
 		strcpy(msg.data, execute_system_cmd("ls"));
@@ -158,6 +166,18 @@ int execute_cmd(int conn_fd, char *cmd) {
 		return -1;
 
 	return 1;
+}
+
+char *log_time() {
+	const u_int8_t TIME_LEN = 64;
+	char *buf = malloc(TIME_LEN);
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	struct tm *tm = localtime(&tv.tv_sec);
+	int millis = tv.tv_usec / 1000;
+	size_t pos = strftime(buf, TIME_LEN, "%F %T", tm);
+	snprintf(&buf[pos], TIME_LEN - pos, ".%03d", millis);
+	return (char *)buf;
 }
 
 int main(int argc, char **argv) {
