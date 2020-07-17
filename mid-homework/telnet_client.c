@@ -122,6 +122,11 @@ int main(int argc, char **argv) {
             if(fgets(msg.data, MAX_LINE, stdin) == NULL)
                 continue;
 
+            if (strncmp(msg.data, "quit", 4) == 0) {
+                if (shutdown(socket_fd, SHUT_WR) < 0)
+                    printf("shutdown failed.");
+            }
+
             msg.type = htonl(MSG_TEXT);
             if (send_message(socket_fd, &msg, sizeof(msg)) == 0)
                 break;
