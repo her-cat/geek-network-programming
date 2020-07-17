@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
     socket_fd = connect_server(argv[1], SERVER_PORT);
 
     FD_ZERO(&read_fds);
-    FD_SET(0, &read_fds);
+    FD_SET(STDIN_FILENO, &read_fds);
     FD_SET(socket_fd, &read_fds);
 
     tv.tv_sec = KEEP_ALIVE_TIME;
@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
             }
         }
 
-        if (FD_ISSET(0, &read_mask)) {
+        if (FD_ISSET(STDIN_FILENO, &read_mask)) {
             if(fgets(msg.data, MAX_LINE, stdin) == NULL)
                 continue;
 
