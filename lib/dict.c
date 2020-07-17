@@ -23,71 +23,94 @@ dict *dictCreate(unsigned long size) {
 
 int dictAdd(dict *d, void *key, void *val) {
 	long index;
+	dictht *ht;
 	dictEntry *entry;
+
+	// if (dictIsRehashing(d)) _dictRehashStep(d);
 
 	if ((index = _dictKeyIndex(d, key)) == -1) {
 		return DICT_ERR;
 	}
 
+	ht = dictIsRehashing(d) ? &d->ht[1] : &d->ht[0];
+
 	entry = malloc(sizeof(*entry));
 	entry->key = key;
 	entry->val = val;
-	entry->next = d->table[index];
-	d->table[index] = entry;
-	d->used++;
+	entry->next = ht->table[index];
+	ht->table[index] = entry;
+	ht->used++;
 
 	return DICT_OK;
 }
 
 dictEntry *dictGet(dict *d, void *key) {
-	long index;
+	__uint64_t h, idx;
 	dictEntry *entry;
 
-	index = d->mask & _dictGenHash(key, strlen(key));
+	if (dictSize(d) == 0) return NULL;
 
-	entry = d->table[index];
-	while (entry) {
-		if(strcmp(key, entry->key) == 0)
-			break;
-		entry = entry->next;
+	// if (dictIsRehashing(d)) _dictRehashStep(d);
+
+	h = _dictGenHash(key, strlen(key));
+
+	for (int i = 0; i < 2; i++) {
+		idx = h & d->ht[i].mask;
+		entry = d->ht[i].table[idx];
+		while (entry) {
+			if(strcmp(key, entry->key) == 0)
+				return entry;
+			entry = entry->next;
+		}
+		// 如果没有在 rehash，就不需要去 ht[1] 找了
+		if (!dictIsRehashing(d)) return NULL;
 	}
 
-	return entry;
+	return NULL;
 }
 
 dictEntry *dictDel(dict *d, void *key) {
-	long index;
+	__uint64_t h, idx;
 	dictEntry *entry, *prevEntry = NULL;
 
-	index = d->mask & _dictGenHash(key, strlen(key));
+	if (dictSize(d) == 0) return NULL;
 
-	entry = d->table[index];
-	while (entry) {
-		if(key == entry->key) {
-			if (prevEntry)
-				prevEntry->next = entry->next;
-			else
-				d->table[index] = entry->next;
-			d->used--;
-			free(entry);
-			return entry;
+	// if (dictIsRehashing(d)) _dictRehashStep(d);
+
+	h = _dictGenHash(key, strlen(key));
+
+	for (int i = 0; i < 2; i++) {
+		idx = h & d->ht[i].mask;
+		entry = d->ht[i].table[idx];
+		while (entry) {
+			if(key == entry->key) {
+				if (prevEntry)
+					prevEntry->next = entry->next;
+				else
+					d->ht[i].table[idx] = entry->next;
+				d->ht[i].used--;
+				free(entry);
+				return entry;
+			}
+			prevEntry = entry;
+			entry = entry->next;
 		}
-		prevEntry = entry;
-		entry = entry->next;
+		// 如果没有在 rehash，就不需要去 ht[1] 找了
+		if (!dictIsRehashing(d)) return NULL;
 	}
 
-	return entry;
+	return NULL;
 }
 
 int _dictInit(dict *d, unsigned long size) {
-	d->table = malloc(sizeof(dictEntry *) * size);
-	d->size = size;
-	d->mask = size - 1;
-	d->used = 0;
-
-	for (int i = 0; i < size; ++i) {
-		d->table[i] = NULL;
+	for (int i = 0; i < 2; i++) {
+		d->ht[i].table = malloc(sizeof(dictEntry *) * size);
+		d->ht[i].size = size;
+		d->ht[i].mask = size - 1;
+		d->ht[i].used = 0;
 	}
+
+	d->rehashidx = -1;
 
 	return DICT_OK;
 }
@@ -96,13 +119,15 @@ long _dictKeyIndex(dict *d, const void *key) {
 	long idx;
 	dictEntry *he;
 
-	idx = d->mask & _dictGenHash(key, strlen(key));
+	for (int i = 0; i < 2; i++) {
+		idx = d->ht[i].mask & _dictGenHash(key, strlen(key));
 
-	he = d->table[idx];
-	while (he) {
-		if(strcmp(key, he->key) == 0)
-			return -1;
-		he = he->next;
+		he = d->ht[i].table[idx];
+		while (he) {
+			if(strcmp(key, he->key) == 0)
+				return -1;
+			he = he->next;
+		}
 	}
 
 	return idx;
