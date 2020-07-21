@@ -29,7 +29,7 @@ int dictAdd(dict *d, void *key, void *val) {
 	dictht *ht;
 	dictEntry *entry;
 
-	// if (dictIsRehashing(d)) _dictRehashStep(d);
+	if (dictIsRehashing(d)) _dictRehashStep(d);
 
 	if ((index = _dictKeyIndex(d, key)) == -1) {
 		return DICT_ERR;
@@ -53,7 +53,7 @@ dictEntry *dictGet(dict *d, void *key) {
 
 	if (dictSize(d) == 0) return NULL;
 
-	// if (dictIsRehashing(d)) _dictRehashStep(d);
+	if (dictIsRehashing(d)) _dictRehashStep(d);
 
 	h = _dictGenHash(key, strlen(key));
 
@@ -78,7 +78,7 @@ dictEntry *dictDel(dict *d, void *key) {
 
 	if (dictSize(d) == 0) return NULL;
 
-	// if (dictIsRehashing(d)) _dictRehashStep(d);
+	if (dictIsRehashing(d)) _dictRehashStep(d);
 
 	h = _dictGenHash(key, strlen(key));
 
