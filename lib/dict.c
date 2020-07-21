@@ -1,12 +1,15 @@
 #include "dict.h"
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 
 /* -------------------------- private prototypes ---------------------------- */
 
 static int _dictInit(dict *d, unsigned long size);
 static long _dictKeyIndex(dict *d, const void *key);
 static unsigned int _dictGenHash(const unsigned char *buff, int len);
+static void _dictReset(dictht *ht);
+static void _dictRehashStep(dict *d);
 
 /* ----------------------------- API implementation ------------------------- */
 
@@ -102,6 +105,47 @@ dictEntry *dictDel(dict *d, void *key) {
 	return NULL;
 }
 
+int dictRehash(dict *d, int n) {
+	int empty_visits = n * 10;
+
+	if (!dictIsRehashing(d)) return 0;
+
+	while (--n && d->ht[0].used != 0) {
+		dictEntry *de, *nextde;
+
+		assert(d->ht[0].size > (unsigned long) d->rehashidx);
+		while (d->ht[0].table[d->rehashidx] == NULL) {
+			d->rehashidx++;
+			if (--empty_visits == 0) return 1;
+		}
+
+		de = d->ht[0].table[d->rehashidx];
+		while (de) {
+			__uint64_t h;
+
+			nextde = de->next;
+			h = _dictKeyIndex(d, de->key) & d->ht[0].mask; // 计算 de 放在哪个槽
+			de->next = d->ht[1].table[h];	// 将 de 的后继节点指向新的哈希表 table[h] 的第一个节点
+			d->ht[1].table[h] = de;	// 将 de 作为哈希表 table[h] 第一个节点
+			d->ht[0].used--; // ht[0] 已使用数量减一
+			d->ht[1].used++; // ht[1] 已使用数量加一
+			de = nextde; // 指针后移，继续循环
+		}
+		d->ht[0].table[d->rehashidx] = NULL;
+		d->rehashidx++;
+	}
+
+	/* 如果 ht[0] 已经转移完毕 */
+	if (d->ht[0].used == 0) {
+		free(d->ht[0].table);	// 释放 ht[0] 的 table
+		d->ht[0] = d->ht[1];	// 将 ht[0] 指向 ht[1]
+		_dictReset(&d->ht[1]);	// 重置 ht[1]
+		d->rehashidx = -1;		// 修改为未进行 rehash 状态
+	}
+
+	return 1;
+}
+
 int _dictInit(dict *d, unsigned long size) {
 	for (int i = 0; i < 2; i++) {
 		d->ht[i].table = malloc(sizeof(dictEntry *) * size);
@@ -140,6 +184,17 @@ unsigned int _dictGenHash(const unsigned char *buff, int len) {
 		hash = ((hash << 5) + hash) + *buff++;
 
 	return hash;
+}
+
+static void _dictReset(dictht *ht) {
+    ht->table = NULL;
+    ht->size = 0;
+    ht->mask = 0;
+    ht->used = 0;
+}
+
+static void _dictRehashStep(dict *d) {
+	dictRehash(d, 1);
 }
 
 #ifdef DICT_TEST_MAIN
