@@ -29,7 +29,7 @@ typedef struct dict {
 	long rehashidx;
 } dict;
 
-dict *dictCreate(unsigned long size);
+dict *dictCreate();
 int dictAdd(dict *d, void *key, void *val);
 dictEntry *dictGet(dict *d, void *key);
 dictEntry *dictDel(dict *d, void *key);

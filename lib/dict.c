@@ -19,7 +19,7 @@ static int _dictExpandIfNeeded(dict *d);
 
 /* ----------------------------- API implementation ------------------------- */
 
-dict *dictCreate(unsigned long size) {
+dict *dictCreate() {
 	dict *d = malloc(sizeof(dict));
 	if (d == NULL) {
 		return NULL;
