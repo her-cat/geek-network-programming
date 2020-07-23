@@ -2,14 +2,20 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+#include <limits.h>
+
+static int dict_can_resize = 1;
+static int dict_force_resize_ratio = 5;
 
 /* -------------------------- private prototypes ---------------------------- */
 
-static int _dictInit(dict *d, unsigned long size);
+static int _dictInit(dict *d);
 static long _dictKeyIndex(dict *d, const void *key);
 static unsigned int _dictGenHash(const unsigned char *buff, int len);
+static unsigned long _dictNextPower(unsigned long size);
 static void _dictReset(dictht *ht);
 static void _dictRehashStep(dict *d);
+static int _dictExpandIfNeeded(dict *d);
 
 /* ----------------------------- API implementation ------------------------- */
 
@@ -19,7 +25,7 @@ dict *dictCreate(unsigned long size) {
 		return NULL;
 	}
 
-	_dictInit(d, size);
+	_dictInit(d);
 
 	return d;
 }
@@ -105,6 +111,33 @@ dictEntry *dictDel(dict *d, void *key) {
 	return NULL;
 }
 
+int dictExpand(dict *d, unsigned long size) {
+	dictht n;
+	unsigned long realsize;
+
+	if (dictIsRehashing(d)) return DICT_OK;
+
+	realsize = _dictNextPower(size);
+
+	if (realsize == d->ht[0].size) return DICT_ERR;
+
+	n.used = 0;
+	n.size = realsize;
+	n.mask = realsize - 1;
+	n.table = calloc(realsize, sizeof(dictEntry *));
+
+	/* 如果是第一次初始化，那肯定不是为 rehash
+	 * 我们必须设置第一个哈希表，让它能够存储 key/value */
+	if (d->ht[0].table == NULL) {
+		d->ht[0] = n;
+		return DICT_OK;
+	}
+
+	d->ht[1] = n;
+	d->rehashidx = 0; /* rehashidx 置为 0，表示正在 rehash */
+	return DICT_OK;
+}
+
 int dictRehash(dict *d, int n) {
 	int empty_visits = n * 10;
 
@@ -146,13 +179,9 @@ int dictRehash(dict *d, int n) {
 	return 1;
 }
 
-int _dictInit(dict *d, unsigned long size) {
-	for (int i = 0; i < 2; i++) {
-		d->ht[i].table = malloc(sizeof(dictEntry *) * size);
-		d->ht[i].size = size;
-		d->ht[i].mask = size - 1;
-		d->ht[i].used = 0;
-	}
+int _dictInit(dict *d) {
+	_dictReset(&d->ht[0]);
+	_dictReset(&d->ht[1]);
 
 	d->rehashidx = -1;
 
@@ -163,6 +192,9 @@ long _dictKeyIndex(dict *d, const void *key) {
 	long idx;
 	dictEntry *he;
 
+	if (_dictExpandIfNeeded(d) == DICT_ERR) 
+		return -1;
+
 	for (int i = 0; i < 2; i++) {
 		idx = d->ht[i].mask & _dictGenHash(key, strlen(key));
 
@@ -172,6 +204,7 @@ long _dictKeyIndex(dict *d, const void *key) {
 				return -1;
 			he = he->next;
 		}
+		if (!dictIsRehashing(d)) break;
 	}
 
 	return idx;
@@ -186,6 +219,18 @@ unsigned int _dictGenHash(const unsigned char *buff, int len) {
 	return hash;
 }
 
+static unsigned long _dictNextPower(unsigned long size) {
+	unsigned long i = DICT_HT_INITIAL_SIZE;
+
+	if (size >= LONG_MAX) return LONG_MAX + 1LU;
+
+	while (1) {
+		if (i >= size)
+			return i;
+		i *= 2;
+	}
+}
+
 static void _dictReset(dictht *ht) {
     ht->table = NULL;
     ht->size = 0;
@@ -195,6 +240,19 @@ static void _dictReset(dictht *ht) {
 
 static void _dictRehashStep(dict *d) {
 	dictRehash(d, 1);
+}
+
+static int _dictExpandIfNeeded(dict *d) {
+	if (dictIsRehashing(d)) 
+		return DICT_OK;
+
+	if (d->ht[0].size == 0) 
+		return dictExpand(d, DICT_HT_INITIAL_SIZE);
+
+	if (d->ht[0].used >= d->ht[0].size && (dict_can_resize || d->ht[0].used / d->ht[0].size >= dict_force_resize_ratio))
+		return dictExpand(d, d->ht[0].used * 2);
+
+	return DICT_OK;
 }
 
 #ifdef DICT_TEST_MAIN
