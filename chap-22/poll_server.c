@@ -7,6 +7,7 @@
 
 #define SERVER_PORT 8021
 #define POLL_FD_SIZE 128
+#define MAX_LINE 4096
 
 int create_tcp_server(int port) {
     int listen_fd, on = 1;
@@ -35,7 +36,9 @@ int create_tcp_server(int port) {
 }
 
 int main(int argc, char *argv) {
-    int listen_fd, conn_fd, fd_idx = 0, ready_num;
+    int listen_fd, conn_fd, socket_fd, fd_idx = 0, ready_num;
+    char buf[MAX_LINE];
+    ssize_t recved_count;
     struct pollfd fds[POLL_FD_SIZE];
     struct sockaddr_in client_addr;
 
@@ -73,6 +76,25 @@ int main(int argc, char *argv) {
                 continue;
         }
 
+        for (int i = 1; i < POLL_FD_SIZE; i++) {
+            if ((socket_fd = fds[i].fd) < 0)
+                continue;
+            if (fds[i].revents & (POLLRDNORM | POLLERR)) {
+                if ((recved_count = read(socket_fd, buf, MAX_LINE)) > 0) {
+                    if (write(socket_fd, buf, recved_count) < 0) {
+                        error(1, errno, "write failed");
+                    }
+                } else if (recved_count == 0 || errno == ECONNRESET) {
+                    close(socket_fd);
+                    fds[i].fd = -1;
+                } else {
+                    error(1, errno, "read error");
+                }
+
+                if (--ready_num  <= 0)
+                    break;
+            }
+        }
     }
 
     return EXIT_SUCCESS;
