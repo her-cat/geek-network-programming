@@ -1,0 +1,3 @@
+add_executable(nonblocking_io_select_server nonblocking_io_select_server.c)
+
+target_link_libraries(nonblocking_io_select_server)
