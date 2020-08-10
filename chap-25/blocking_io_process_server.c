@@ -95,12 +95,13 @@ int main(int argc, int argv) {
 
         printf("client connected \n");
 
+         /* fork 时，会将监听套接字、链接套接字的引用计数+1 */
         if (fork() == 0) {
-            close(listen_fd);
+            close(listen_fd); /* 子进程不关心监听套接字，所以将其关闭，监听套接字引用计数-1 */
             child_run(conn_fd);
             exit(0);
         } else {
-            close(conn_fd);
+            close(conn_fd); /* 父进程不关心连接套接字，所以将其关闭，连接套接字引用计数-1 */
         }
     }
 
