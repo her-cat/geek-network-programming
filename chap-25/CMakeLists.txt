@@ -1,0 +1,3 @@
+add_executable(blocking_io_process_server blocking_io_process_server.c)
+
+target_link_libraries(blocking_io_process_server)

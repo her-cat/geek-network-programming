@@ -36,7 +36,7 @@ int create_tcp_server(int port) {
 }
 
 char rot13_char(char c) {
-    if ((c >= 'a' && c <= 'm') || (c >= 'A' || c <= 'M'))
+    if ((c >= 'a' && c <= 'm') || (c >= 'A' && c <= 'M'))
         return c + 13;
     else if ((c >= 'n' && c <= 'z') || (c >= 'N' && c <= 'Z'))
         return c - 13;
