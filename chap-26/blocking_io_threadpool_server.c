@@ -11,7 +11,7 @@
 
 typedef struct {
     int size; /* 当前队列中描述符最大个数 */
-    int count;  /* 当前队列中描述符个数 */
+    int used;  /* 当前队列中描述符个数 */
     int *fd;    /* 描述符数组 */
     int front;  /* 当前队列的头位置 */
     int rear;   /* 当前队列的尾位置 */
@@ -24,7 +24,7 @@ typedef struct {
 void blocking_queue_init(blocking_queue *queue, int size) {
     queue->size = size;
     queue->fd = calloc(size, sizeof(int));
-    queue->count = queue->front = queue->rear = 0;
+    queue->used = queue->front = queue->rear = 0;
     pthread_mutex_init(&queue->mutex, NULL);
     pthread_cond_init(&queue->free, NULL);
     pthread_cond_init(&queue->nonempty, NULL);
@@ -35,7 +35,7 @@ void blocking_queue_push(blocking_queue *queue, int fd) {
     /* 先加锁，防止其它线程读写队列 */
     pthread_mutex_lock(&queue->mutex);
     /* 队列已满则等待空闲信号 */
-    while (queue->count == queue->size)
+    while (queue->used == queue->size)
         pthread_cond_wait(&queue->free, &queue->mutex);
     /* 将新的 fd 放在队尾 */
     queue->fd[queue->rear] = fd;
@@ -43,7 +43,7 @@ void blocking_queue_push(blocking_queue *queue, int fd) {
     if (++queue->rear == queue->size)
         queue->rear = 0;
 
-    queue->count++;
+    queue->used++;
     printf("[queue] push fd: %d \n", fd);
 
     /* 通知其他线程有新的连接字等待处理 */
@@ -57,7 +57,7 @@ int blocking_queue_pop(blocking_queue *queue) {
     /* 加锁 */
     pthread_mutex_lock(&queue->mutex);
     /* 如果队列为空就一直条件等待，直到有新连接入队列 */
-    while (queue->count == 0)
+    while (queue->used == 0)
         pthread_cond_wait(&queue->nonempty, &queue->mutex);
     /* 取出队头的连接字 */
     int fd = queue->fd[queue->front];
@@ -65,7 +65,7 @@ int blocking_queue_pop(blocking_queue *queue) {
     if (++queue->front == queue->size)
         queue->front = 0;
 
-    queue->count--;
+    queue->used--;
     printf("[queue] pop fd: %d \n", fd);
 
     /* 通知其他线程当前队列有空闲 */
