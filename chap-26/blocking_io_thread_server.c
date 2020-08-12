@@ -4,7 +4,6 @@
 #include <pthread.h>
 
 #define SERVER_PORT 8026
-#define EPOLL_MAX_EVENTS 128
 #define MAX_LINE 4096
 
 int create_tcp_server(int port) {
@@ -55,7 +54,9 @@ void connection_loop(int fd) {
         if (result < 0) {
             error(1, errno, "read error");
         } else if (result == 0) {
-            error(1, 0, "client closed \n");
+            printf("client closed \n");
+            close(fd);
+            break;
         }
 
         printf("[tid:%ld] received %d bytes: %s", tid, result, buf);
