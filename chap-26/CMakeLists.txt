@@ -1,5 +1,7 @@
 add_executable(test_pthread test_pthread.c)
 add_executable(blocking_io_thread_server blocking_io_thread_server.c)
+add_executable(blocking_io_threadpool_server blocking_io_threadpool_server.c)
 
 target_link_libraries(test_pthread pthread)
 target_link_libraries(blocking_io_thread_server pthread)
+target_link_libraries(blocking_io_threadpool_server pthread)
