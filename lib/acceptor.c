@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <fcntl.h>
 
+/* 初始化一个监听连接 */
 struct acceptor *acceptor_init(int port) {
     int on = 1;
     struct sockaddr_in server_addr;
