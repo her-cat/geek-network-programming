@@ -13,6 +13,22 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 #SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g2 -ggdb")
 #SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
 
+include_directories(${PROJECT_SOURCE_DIR})
+
+# check epoll and add config.h for the macro compilation.
+include(CheckSymbolExists)
+
+check_symbol_exists(epoll_create "sys/epoll.h" EPOLL_EXISTS)
+if (EPOLL_EXISTS)
+    set(EPOLL_ENABLE 1 CACHE INTERNAL "enable epoll")
+else()
+    set(EPOLL_ENABLE 1 CACHE INTERNAL "disenable epoll")
+endif()
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/include/config.h)
+
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
+
 add_subdirectory(lib)
 add_subdirectory(chap-4)
 add_subdirectory(chap-5)

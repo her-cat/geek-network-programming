@@ -21,8 +21,7 @@ struct event_loop *event_loop_init_with_name(char *thread_name) {
     event_loop->thread_name = thread_name != NULL ? thread_name : "main thread";
 
 #ifdef EPOLL_ENABLE
-    /* TODO: implement epoll_dispatcher */
-    /* event_loop->dispatcher = &epoll_dispatcher; */
+    event_loop->dispatcher = &epoll_dispatcher;
 #else
     event_loop->dispatcher = &poll_dispatcher;
 #endif
