@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <stdio.h>
+#include <assert.h>
 
 struct event_loop *event_loop_init() {
     return event_loop_init_with_name(NULL);
@@ -23,8 +24,7 @@ struct event_loop *event_loop_init_with_name(char *thread_name) {
     /* TODO: implement epoll_dispatcher */
     /* event_loop->dispatcher = &epoll_dispatcher; */
 #else
-    /* TODO: implement poll_dispatcher */
-    /* event_loop->dispatcher = &poll_dispatcher; */
+    event_loop->dispatcher = &poll_dispatcher;
 #endif
 
     event_loop->owner_thread_id = pthread_self();
@@ -41,4 +41,23 @@ struct event_loop *event_loop_init_with_name(char *thread_name) {
     /* TODO: add the socketfd to event */
 
     return event_loop;
+}
+
+int channel_event_activate(struct event_loop *event_loop, int fd, int events) {
+    struct channel *channel;
+
+    printf("activate channel fd==%d events=%d, %s\n", fd, events, event_loop->thread_name);
+
+    if (fd < 0) return 0;
+    else if (fd > event_loop->channel_map->available_num) return -1;
+
+    channel = event_loop->channel_map->entries[fd];
+    assert(fd == channel->fd);
+
+    if (events & EVENT_READ)
+        channel->read(channel->data);
+    if (events & EVENT_WRITE)
+        channel->write(channel->data);
+
+    return 0;
 }

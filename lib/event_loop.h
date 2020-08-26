@@ -9,6 +9,8 @@
 #define CHANNEL_ELEMENT_ADD 1
 #define CHANNEL_ELEMENT_DEL 2
 
+extern const struct event_dispatcher poll_dispatcher;
+
 struct channel_element {
     int type; /* 1:add 2:delete */
     struct channel *channel;
@@ -35,5 +37,6 @@ struct event_loop {
 
 struct event_loop *event_loop_init();
 struct event_loop *event_loop_init_with_name(char *thread_name);
+int channel_event_activate(struct event_loop *eventLoop, int fd, int events);
 
 #endif
