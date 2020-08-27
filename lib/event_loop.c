@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <stdio.h>
 #include <assert.h>
+#include <unistd.h>
 
 struct event_loop *event_loop_init() {
     return event_loop_init_with_name(NULL);
@@ -40,6 +41,13 @@ struct event_loop *event_loop_init_with_name(char *thread_name) {
     /* TODO: add the socketfd to event */
 
     return event_loop;
+}
+
+void event_loop_wakeup(struct event_loop *event_loop) {
+    char one = 'a';
+    ssize_t n = write(event_loop->socket_pair[0], &one, sizeof(one));
+    if (n != sizeof(one))
+        printf("wakeup event loop thread failed \n");
 }
 
 int channel_event_activate(struct event_loop *event_loop, int fd, int events) {

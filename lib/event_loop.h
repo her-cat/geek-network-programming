@@ -38,6 +38,7 @@ struct event_loop {
 
 struct event_loop *event_loop_init();
 struct event_loop *event_loop_init_with_name(char *thread_name);
+void event_loop_wakeup(struct event_loop *event_loop);
 int channel_event_activate(struct event_loop *eventLoop, int fd, int events);
 
 #endif
