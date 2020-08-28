@@ -21,11 +21,17 @@ struct event_loop *event_loop_init_with_name(char *thread_name) {
     event_loop->channel_map = malloc(sizeof(struct channel_map));
     event_loop->thread_name = thread_name != NULL ? thread_name : "main thread";
 
-#ifdef EPOLL_ENABLE
+#ifdef HAVE_EPOLL
     event_loop->dispatcher = &epoll_dispatcher;
 #else
-    event_loop->dispatcher = &poll_dispatcher;
+    #ifdef HAVE_POLL
+        event_loop->dispatcher = &poll_dispatcher;
+    #else
+        /* TODO: Implement select_dispatcher. */
+    #endif
 #endif
+
+    printf("used %s dispatcher, %s\n", event_loop->dispatcher->name, event_loop->thread_name);
 
     event_loop->owner_thread_id = pthread_self();
     event_loop->data = (void *)event_loop->dispatcher->init(event_loop);
